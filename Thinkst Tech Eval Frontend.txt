@@ -1,0 +1,45 @@
+﻿Thinkst Tech Eval: Frontend
+Goal
+Use D3/CSS/HTML to create a custom visualisation for honeypot data. 
+Timeframe
+5 days
+Background
+Thinkst Canary
+Thinkst Canary is our honeypot solution which is deployed on networks across the globe. It takes the form of small appliances which are installed inside a client’s network, and the devices report back to a central console.
+Each device is able to detect incidents like someone attempting to SSH to the device, or someone opening a file on a Windows file share, or someone trying to guess a password for a web site. When an incident occurs, the device reports this data back to the console.
+An incident report consists of these important fields:
+				key                – unique identifier that represents this incident 
+description        – type of attack (e.g. FTP Login Attempt)
+dst_host        – IP address of the Canary device
+src_host        – IP address of the attacker
+created        – timestamp of the incident in seconds since 1970-01-01 00:00
+node_id        – identity of the Canary device which reported the incident
+Plus a bunch of less important fields.
+Devices are represented by a structure that includes these important fields:
+node_id        – unique identifier for a device
+description        – the Canary that was targeted
+ip_address        – current IP address of the Canary device
+The data.json file below contains sample data holding incidents and devices. The incidents are stored under the ‘alerts’ key, and the list of devices is stored under the ‘device_list’ key.
+D3
+D3 (https://d3js.org/) is a low-level visualisation library for browsers. It is well-suited to the task of displaying custom visualisations.
+Task
+The Canary Console simply displays incidents in a long list, but this is bad as it ignores the relationships between incidents. For example, if all the incidents were caused by the same attacker, a list view of this data wouldn’t quickly reveal that fact. It would be better if the visualisation showed at a glance that a single attacker was responsible for multiple incidents.
+
+
+Your task is to produce a better browser-based visualisation of the data. To gauge your ability to learn, we’ve chosen the D3 Javascript library as a testing ground.
+Specifications
+1. Using the D3 library (https://d3js.org/), develop a single HTML page visualisation that displays the relationships between incidents, their sources and their targets.
+2. Your output will be a single index.html HTML file, a single app.js JavaScript file with all your code, and a single styles.css file with all your CSS. Feel free to use external references for standard JS/CSS imports (e.g. the D3 library, bootstrap, etc).
+3. The contents of data.json should be embedded in your app.js, as the data source to build the visualisation.
+4. The choice of visualisation is purposely left open. Browse the D3 gallery and select one you feel best fits (https://github.com/mbostock/d3/wiki/Gallery).
+5. Only use the base D3 library (i.e. http://d3js.org/d3.v3.min.js), don’t rely on third party visualisation abstractions like nvd3.
+Sample Data
+The sample data.json contents are available at this link:
+
+
+https://docs.google.com/document/d/10hIMiyLn3myOLe0l3_u1orcK402fGCCM0CBCNs3DSsQ/edit?usp=sharing
+Submission
+When you’re done, package these artefacts into a Zip file and send to  marco@thinkst.com:
+* Your index.html
+* Your app.js
+* Your styles.css
