@@ -1,0 +1,14 @@
+{
+  "name": "thinkst",
+  "version": "1.0.0",
+  "description": "assessment",
+  "main": "app.js",
+  "scripts": {
+    "test": "/"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.15.4"
+  }
+}

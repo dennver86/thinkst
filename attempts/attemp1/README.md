@@ -1,6 +1,6 @@
 # install
 1. pre-requisites:
-		download node.js https://nodejs.org/en/download/ 
+		download and install node.js https://nodejs.org/en/download/ 
 	
 2. from terminal / cmd 
 	nav to project folder

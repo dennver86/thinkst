@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>extraction</title>
+	<script type="text/javascript">
+
+	//configuration options - control, includes json data
+	function render_chart(control) {
+		var node = {};
+		var link = null;
+		var linkEnter = null;
+		var nodeEnter= null;
+		var svg = control.svg;
+		var force = control.force;
+
+		//--------
+		force
+			.nodes(control.nodes)
+			.links(control.links)
+			.start();
+
+		//--------
+		link = svg
+			.selectAll("line.link")
+			.data(
+				control.links, 
+				function(result) {
+					return result.key;
+				}
+			);
+
+		//--------
+		linkEnter = link
+			.enter()
+			.insert("svg:line", ".node")
+			.attr("class", "link")
+			.attr("x1", function(item) { return item.source.x; })
+			.attr("y1", function(item) { return item.source.y; })
+			.attr("x2", function(item) { return item.target.x; })
+			.attr("y2", function(item) { return item.target.y; })
+			.append("svg:title")
+			.text(function(item) { 
+					return 
+						item.target.name 
+						+ ":"
+						+ d.source.name; 
+				});
+
+		//--------
+		link.exit().remove();
+
+		//--------
+		node = svg
+			.selectAll("g.node") //group data & display elements
+			.data(control.nodes, function(result) { 
+				return result.key; 
+			}); 
+
+		//--------
+		node
+			.select("circle") //svg circle
+			.style("fill", function(item) { return get_color(item); })
+			.attr("r", function(item) { return getRadius(item); })
+
+		
+		//--------
+		//add click transformation on centere node to navigate / filter labels and show node values
+		nodeEnter = node
+			.enter()
+			.append("svg:g")  
+			.attr("class", "node")
+			.attr("transform", function(item) { 
+				return "translate(" + item.x + "," + item.y + ")"; 
+			})
+			//if a center circle item is click re-render graph based on configuration sent
+			//and using a bool click / 
+			.on("click", function(item) { 
+				if (!control.nodeClickInProgress) 
+				{
+					control.nodeClickInProgress = true;
+					setTimeout(function() 
+					{
+						if (control.nodeClickInProgress) 
+						{
+							control.nodeClickInProgress = false;
+							if (control.options.nodeFocus) 
+							{
+								item.isCurrentlyFocused = !item.isCurrentlyFocused;
+
+								//call main function again
+								doTheTreeViz(
+									//massage data again with configuration options
+									makeFilteredData(control)
+								);
+							}
+						}
+					}, control.clickHack); //what the hell a timeout click hack...
+				}
+			});
+
+		//--------
+		//add style and animations after click of center circle
+		nodeEnter
+			.append("svg:circle")
+			.attr("r", function(item) { return getRadius(item); })
+			.style("fill", function(item) { return get_color(item); })
+			.on("mouseover", function(item) { enhanceNode(item); })
+			.on("mouseout", function(item) { resetNode(item); })
+			.append("svg:title")
+			.text(function(item) { return item[control.options.nodeLabel]; })
+
+		//--------
+		function enhanceNode(selected_item) {
+			link
+				.filter(
+					function(item) 
+					{
+						var result = 
+								( 
+								 	item.source.key == selected_item.key || 
+			  					 	item.target.key == selected_item.key 
+		  					 	)
+						return result;
+					}
+				)
+				.style("stroke", control.options.routeFocusStroke)
+				.style("stroke-width", control.options.routeFocusStrokeWidth);
+			
+			if (text) 
+			{
+				text.filter(
+					function(item) 
+						{
+							return areWeConnected(selectedNode, item);
+						}
+					)
+					.style("fill", control.options.routeFocusStroke);
+			}
+		}
+
+		//--------
+		function areWeConnected(node1, node2) {
+			for (var i = 0; i < control.data.links.length; i++) 
+			{
+				var lnk = control.data.links[i];
+				if 
+				(
+					(
+						lnk.source.key === node1.key && 
+						lnk.target.key === node2.key
+					) 
+					||
+					(
+						lnk.source.key === node2.key &&
+						lnk.target.key === node1.key
+					)
+				) 
+				return lnk;
+			}
+			return null;
+		}
+
+		//--------
+		function resetNode(selectedNode) 
+		{
+			link
+				.style("stroke", control.options.routeStroke)
+				.style("stroke-width", control.options.routeStrokeWidth);
+
+			if (text) 
+				text.style("fill", control.options.routeStroke);
+		}
+
+		//--------
+		if (control.options.nodeLabel) 
+		{
+			// text is done once for shadow as well as for text
+			var textShadow = nodeEnter.append("svg:text")
+				.attr("x", 
+					function(item) 
+					{
+						var x = 
+							(item.right || !item.fixed) 
+							? control.options.labelOffset 
+							: (-item.dim.width - control.options.labelOffset);
+					
+						return x;
+					}
+				)
+				.attr("dy", ".31em")
+				.attr("class", "shadow")
+				.attr("text-anchor", 
+					function(item) 
+					{
+						return !item.right ? 'start' : 'start';
+					}
+				)
+				.style("font-size", control.options.labelFontSize + "px")
+				.text(function(d) {
+					return d.shortName ? d.shortName : d.name;
+				});
+
+			//--------
+			var text = nodeEnter.append("svg:text")
+				.attr("x", function(d) {
+					var x = (d.right || !d.fixed) ?
+						control.options.labelOffset :
+						(-d.dim.width - control.options.labelOffset);
+					return x;
+				})
+				.attr("dy", ".35em")
+				.attr("class", "text")
+				.attr("text-anchor", function(d) {
+					return !d.right ? 'start' : 'start';
+				})
+				.style("font-size", control.options.labelFontSize + "px")
+				.text( function(item) { return item.shortName ? item.shortName : item.name;
+				})
+				.on("mouseover", function(item)
+				 {
+					enhanceNode(item);
+
+					d3
+						.select(this)
+						.style('fill', control.options.routeFocusStroke);
+				})
+				.on("mouseout", function(item) {
+					resetNode(item);
+				});
+		}
+
+		//--------
+		node.exit().remove();
+
+		//--------
+		control.link = svg.selectAll("line.link");
+
+		//--------
+		control.node = svg.selectAll("g.node");
+
+		//--------
+		force.on("tick", tick);
+
+		//--------
+		if (control.options.linkName) 
+		{
+			link
+				.append("title")
+				.text(
+					function(item) 
+					{
+						return item[control.options.linkName];
+					}	
+				);
+		}
+
+
+		//--------
+		function tick() {
+			link.attr("x1", function(item) { return item.source.x; })
+				.attr("y1", function(item) { return item.source.y; })
+				.attr("x2", function(item) { return item.target.x; })
+				.attr("y2", function(item) { return item.target.y; });
+			node.attr("transform", function(item) {
+				return "translate(" + d.x + "," + d.y + ")";
+			});
+
+		}
+
+		//--------
+		function get_radius(item) {
+			return build_radius(control, item);
+		}
+
+		//--------
+		function get_color(item) 
+		{
+			return (control.options.nodeFocus && item.isCurrentlyFocused)
+				? control.options.nodeFocusColor 
+				: control.color(item.group);
+		}
+	} //end of render_chart()
+
+	//======================================
+	//REUSABLE FUNCTIONS: Above and below
+
+	//--------
+	function build_radius(control, item) {
+		var _radius = 
+			control.options.radius * 
+			(
+				control.options.nodeResize 
+				? Math.sqrt(item[control.options.nodeResize]) / Math.PI 
+				: 1
+			);
+
+		return control.options.nodeFocus && item.isCurrentlyFocused 
+			? control.options.nodeFocusRadius 
+			: _radius;
+	}
+
+	//--------
+	//PRIMARY FUNCTION  & SUPPLEMENTARY ACTION
+	//LOGIC: when user selects a circle load the connections only applicable for that circle
+	function makeFilteredData(control, selectedNode) {
+		// we'll keep only the data where filterned nodes are the source or target
+		var newNodes = [];
+		var newLinks = [];
+
+		for (var i = 0; i < control.data.links.length; i++) {
+			var link = control.data.links[i];
+			if (link.target.isCurrentlyFocused || link.source.isCurrentlyFocused) {
+				newLinks.push(link);
+				addNodeIfNotThere(link.source, newNodes);
+				addNodeIfNotThere(link.target, newNodes);
+			}
+		}
+
+		//navigating back to main chart
+		// if none are selected reinstate the whole dataset
+		if (newNodes.length > 0) 
+		{
+			control.links = newLinks;
+			control.nodes = newNodes;
+		} 
+		else 
+		{
+			control.nodes = control.data.nodes;
+			control.links = control.data.links;
+		}
+
+		return control;
+
+		//-------
+		function addNodeIfNotThere(node, nodes) 
+		{
+			for (var i = 0; i < nodes.length; i++) 
+			{
+				if (nodes[i].key == node.key) 
+					return i;
+			}
+
+			return nodes.push(node) - 1;
+		}
+	}
+
+
+	//-----------
+	function findOrAddPage(control, page, nodes) 
+	{
+		for (var i = 0; i < nodes.length; i++) 
+		{
+			if (nodes[i].key === page.key) 
+			{
+				nodes[i].count++;
+				return nodes[i];
+			}
+		}
+	
+		page.fixed = true;
+		page.count = 0;
+	
+		return nodes[nodes.push(page) - 1];
+	}
+
+	//--------
+	function getPixelDims(scratch, page_name) {
+		scratch.empty();
+		scratch.append(document.createTextNode(page_name));
+		
+		return { 
+			width: scratch.outerWidth(), 
+			height: scratch.outerHeight() 
+		};
+	}
+
+
+	//======================================
+	//DATA LOAD AND CHART PRE-CONFIG
+
+	//--------
+	//PRIMARY FUNCTION: INIT
+	function init() {
+		var json_data = {};
+		var control = {
+			options: {
+				divName: "#chart",
+				width: $("#chart").outerWidth(),
+				height: $("#chart").outerHeight(),
+				stackHeight: 12,
+				radius: 5,
+				fontSize: 14,
+				labelFontSize: 8,
+				labelLineSpacing: 2.5,
+				nodeLabel: null,
+				markerWidth: 0,
+				markerHeight: 0,
+				gap: 4.5,
+				nodeResize: "",
+				linkDistance: 80,
+				charge: -120,
+				styleColumn: null,
+				styles: null,
+				linkName: null,
+				nodeFocus: true,
+				nodeFocusRadius: 25,
+				labelOffset: 5,
+				gravity: .05,
+				height: 900,
+				nodeFocus: true,
+				radius: 3,
+				charge: -500,
+				routeFocusStrokeWidth: 3,
+				nodeFocusColor: "FireBrick",
+				routeFocusStroke: "FireBrick",
+				routeStroke: "Black",
+				circleFill: "Black",
+				routeStrokeWidth: 1,
+				nodeLabel: "label",
+				nodeResize: "count",
+				color: d3.scale.category20(),
+				scratch: $(document.createElement('span')).addClass('shadow').css('display', 'none').css("font-size","8px"),
+				clickHack: 200,
+				svg: d3.select("#chart"),
+					.append("svg:svg")
+					.attr("width", $("#chart").outerWidth())
+					.attr("height", $("#chart").outerWidth()),
+				force: d3
+					.layout
+					.force()
+					.size([control.width, control.height])
+						.linkDistance(control.options.linkDistance)
+						.charge(control.options.charge)
+						.gravity(control.options.gravity)
+			}
+		};
+
+		//LOGIC: ADD JSON TO CONTROL
+		//can perhaps rework this entire function as the control is sent by reference and not value,
+		//the json-data is blank and does not need to be sent or returned
+		//only the control should be sent and no returning value
+		build_json_for_d3_display(control);
+		
+		//LOGIC: CREATE OVERARCHING STYLE ELEMENT
+		$('body').append(control.scratch);
+
+	}
+
+	//--------
+	//PRIMARY FUNCTION: BUILD D3 CHART USING JSON
+	//this needs to be heavily configured for the current json im going to use
+	function build_json_for_d3_display(control, data)
+	{
+		var ind = data,
+			nodes = [],
+			links = [];
+
+		// the tags are to be circles
+		for (var i = 0; i < ind.length; i++) 
+		{
+			ind[i].isCurrentlyFocused = false;
+			nodes.push(ind[i]);
+			// add links to pages
+			for (var j = 0; j < ind[i].pages.length; j++) 
+			{
+				//push this page as a node
+				var node = findOrAddPage(control, ind[i].pages[j], nodes);
+				node.isCurrentlyFocused = false;
+				// create a link
+				var link = { source: node, target: ind[i], key: node.key + "_" + ind[i].key };
+				links.push(link);
+			}
+		}
+
+		// sort nodes alpha increases circle size
+		nodes.sort(function(a, b) { return a.name < b.name ? -1 : (a.name == b.name ? 0 : 1); });
+		control.pageCount = 0;
+		control.pageRectSize = { width: 0, height: 0, radius: 0 };
+		
+		for (var i = 0; i < nodes.length; i++)
+		{
+			page = nodes[i];
+			page.group = 0;
+			page.dim = getPixelDims(control.scratch, page.name);
+			
+			if (page.fixed) 
+			{
+				control.pageCount++;
+				// this will calculate the width/height in pixels of the largest label
+				control.pageRectSize.width = Math.max(control.pageRectSize.width, page.dim.width);
+				control.pageRectSize.height = Math.max(control.pageRectSize.height, page.dim.height);
+				control.pageRectSize.radius = Math.max(control.pageRectSize.radius, makeRadius(control, page));
+				page.group = 1;
+			}
+
+		}
+		var options = control.options;
+
+		// we're going to fix the nodes that are pages into two columns
+		for (var i = 0, c = 0; i < nodes.length; i++) 
+		{
+			var page = nodes[i];
+			
+			if (page.fixed) 
+			{
+				page.right = (c > control.pageCount / 2);
+				// y dimension calc same for each column
+				page.y = ((c % (control.pageCount / 2)) + .5) * (control.pageRectSize.height);
+
+				// x based on right or left column
+				page.x = page.right ?
+					control.width - control.pageRectSize.width - options.labelOffset :
+					page.dim.width + options.labelOffset;
+				c++;
+			}
+
+		}
+		return { nodes: nodes, links: links };
+	}
+
+	</script>
+</head>
+
+<body>
+	<div id="chart"></div>
+</body>
+
+</html>
