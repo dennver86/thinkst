@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+		<title>Visualising Connections</title>
+		<!-- jquery -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+		<!-- bootstrap -->
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+		<!-- d3js -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.10.2/d3.min.js"></script>
+		<!-- custom script -->
+		<script type="text/javascript">
+		//start of page load
+		$(document).ready(function() {
+				var self = this;
+				self.width = 500;
+				self.height = 500;
+				
+				//initialise page data
+				self.init = function() {
+
+					//should sort elements by size to get the scale of (bars)
+					var dataArray = [20, 40, 50, 60];
+
+					//transform (scale wise - resizing) width of svg based on elements of array
+					var widthScale = d3.scaleLinear().domain([0, dataArray[dataArray.length-1]]).range([0,self.width]);
+
+					var xAxis = d3.axisBottom(widthScale).ticks(3);
+
+					var canvas = d3.select("body")
+						.append("svg")	
+						.attr("width", 500)
+						.attr("height", 500)
+						.append("g")
+						.attr("transform", "translate(20,0)")						
+
+					var bars = canvas.selectAll("rect")
+						.data(dataArray)
+						.enter()
+							.append("rect")
+							.attr("width", function(item) { return widthScale(item); } ) //squashes shapes to fit size of canvas
+							.attr("height", 50 )
+							.attr("y", function(item	, index) { return index * 100; } );
+
+					var circle = canvas.append("circle")
+						.attr("cx", 300 )	
+						.attr("cy", 0 )	
+						.attr("r", 60 )	
+						.attr("fill", "red" );
+
+					var rectangle = canvas.append("rect")
+						.attr("width",30)
+						.attr("height", 30);
+
+					var line = canvas.append("line")
+						.attr("x1", 0)
+						.attr("y1", 100)
+						.attr("x2", 400)
+						.attr("y2", 200)
+						.attr("stroke", "green")
+						.attr("stroke-width", 10);
+
+
+					canvas.append("g")
+						.attr("transform", "translate(0,400)")
+						.call(xAxis)
+				};
+
+
+				//call initial load sequence
+				self.init();
+
+		});
+		</script>
+</head>
+
+<body>
+	
+</body>
+
+</html>
